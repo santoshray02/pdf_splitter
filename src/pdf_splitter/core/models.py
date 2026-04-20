@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -109,7 +109,7 @@ class Manifest(BaseModel):
     mode: Mode
     model: str
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
-    config: dict[str, object]
+    config: dict[str, Any]
     cost_usd: float
     page_count: int
     boundaries: list[Boundary]
