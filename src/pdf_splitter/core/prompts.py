@@ -17,6 +17,11 @@ Signals that usually indicate a new document:
 
 Respond with a single JSON object:
 {"is_boundary": bool, "confidence": float between 0 and 1, "reason": short string}
+
+Calibrate confidence so that 0.5 means the evidence is genuinely ambiguous,
+0.7-0.85 means a clear but not unmistakable signal, and 0.9+ means the signal
+is essentially unambiguous. Reserve values below 0.3 for "almost certainly
+not a boundary."
 """
 
 
@@ -26,6 +31,8 @@ def compose_prompt(
     user_prompt: str | None,
     examples: list[FewShotExample],
 ) -> str:
+    # Each appended section brings its own single leading newline; join with "" so
+    # we don't accumulate \n\n\n separators in log output.
     parts: list[str] = [DEFAULT_SYSTEM_PROMPT]
     if profile is not None and profile.prompt:
         parts.append("\nAdditional context from profile:\n" + profile.prompt.rstrip())
@@ -35,5 +42,5 @@ def compose_prompt(
         parts.append("\nExamples:")
         for i, ex in enumerate(examples, start=1):
             label = "is_boundary=true" if ex.is_boundary else "is_boundary=false"
-            parts.append(f"  Example {i}: {ex.before.name} → {ex.after.name} ({label})")
-    return "\n".join(parts)
+            parts.append(f"\n  Example {i}: {ex.before.name} → {ex.after.name} ({label})")
+    return "".join(parts)
