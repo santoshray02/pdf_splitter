@@ -80,29 +80,29 @@ async def _process_one(source: Path, config: Config, client: Classifier) -> bool
         )
     else:
         # Iterate pairs sequentially so we can halt mid-stream at the cost cap.
-        # Cache is disabled in this path: cached results return cost=0 which
-        # would prevent the cap from ever triggering.
+        # Call client.classify directly (instead of detect_boundaries on a 2-page
+        # slice) so the absolute page_index reaches the LLM's positional context;
+        # otherwise every pair would be labeled "page 1" regardless of position.
+        # Cache is intentionally bypassed here: cached results return cost=0, so
+        # honoring them could prevent the cap from ever firing on a previously-run
+        # file. Users who want cached behavior can omit --max-cost-usd.
         for i in range(page_count - 1):
-            pair: list[bytes] | list[str] = pages[i : i + 2]  # type: ignore[assignment]
-            partial, cost = await detect_boundaries(
-                pages=pair,
-                mode=mode,
-                prompt=prompt,
-                client=client,
-                cache=None,
-                concurrency=1,
-            )
-            if partial:
-                d = partial[0]
-                decisions.append(
-                    BoundaryDecision(
-                        page_index=i + 1,
-                        is_boundary=d.is_boundary,
-                        confidence=d.confidence,
-                        reason=d.reason,
-                        error=d.error,
-                    )
+            abs_page_index = i + 1
+            if mode == "scanned":
+                decision, cost = await client.classify(
+                    page_index=abs_page_index,
+                    prompt=prompt,
+                    prev_image=cast(bytes, pages[i]),
+                    curr_image=cast(bytes, pages[i + 1]),
                 )
+            else:
+                decision, cost = await client.classify(
+                    page_index=abs_page_index,
+                    prompt=prompt,
+                    prev_text=cast(str, pages[i]),
+                    curr_text=cast(str, pages[i + 1]),
+                )
+            decisions.append(decision)
             total_cost += cost
             if total_cost >= config.max_cost_usd:
                 halted = True
