@@ -34,12 +34,17 @@ def _builtin_dir() -> Path:
     return Path(str(resources.files("pdf_splitter.profiles")))
 
 
+def search_dirs() -> list[Path]:
+    """Return the three profile-directory tiers in precedence order.
+
+    Public so the CLI's `profiles list` can enumerate from the same set the
+    library's `load_profile` searches — keeps listing and loading consistent.
+    """
+    return [_local_dir(), _xdg_dir(), _builtin_dir()]
+
+
 def _candidates(name: str) -> list[Path]:
-    return [
-        _local_dir() / f"{name}.yaml",
-        _xdg_dir() / f"{name}.yaml",
-        _builtin_dir() / f"{name}.yaml",
-    ]
+    return [d / f"{name}.yaml" for d in search_dirs()]
 
 
 def find_profile(name: str) -> Path | None:

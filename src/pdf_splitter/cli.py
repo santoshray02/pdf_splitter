@@ -4,16 +4,19 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
 from pathlib import Path
 
-import platformdirs
 import typer
 
 from pdf_splitter.core.manifest import read_manifest
 from pdf_splitter.core.models import Config, Mode
 from pdf_splitter.core.pipeline import run as run_pipeline
-from pdf_splitter.core.profiles import ProfileNotFoundError, find_profile, load_profile
+from pdf_splitter.core.profiles import (
+    ProfileNotFoundError,
+    find_profile,
+    load_profile,
+    search_dirs,
+)
 from pdf_splitter.providers.llm import LLMClient
 
 app = typer.Typer(add_completion=False, help="AI-powered PDF splitter.")
@@ -80,22 +83,10 @@ def split(
         raise typer.Exit(code=1)
 
 
-def _profiles_search_dirs() -> list[Path]:
-    xdg = os.environ.get("XDG_CONFIG_HOME")
-    if xdg:
-        xdg_base = Path(xdg) / "pdf_splitter"
-    else:
-        xdg_base = Path(platformdirs.user_config_dir("pdf_splitter"))
-    return [
-        Path.cwd() / "pdf_splitter.profiles",
-        xdg_base / "profiles",
-    ]
-
-
 @profiles_app.command("list")
 def profiles_list() -> None:
     seen: set[str] = set()
-    for d in _profiles_search_dirs():
+    for d in search_dirs():
         if d.exists():
             for f in sorted(d.glob("*.yaml")):
                 if f.stem not in seen:
