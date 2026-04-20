@@ -12,7 +12,7 @@ def render_page_png(doc: pymupdf.Document, page_index: int, *, dpi: int) -> byte
     zoom = dpi / 72.0
     matrix = pymupdf.Matrix(zoom, zoom)
     pix = page.get_pixmap(matrix=matrix, alpha=False)  # type: ignore[reportUnknownMemberType]
-    return cast(bytes, pix.tobytes("png"))  # type: ignore[reportUnknownMemberType]
+    return pix.tobytes("png")  # type: ignore[reportUnknownMemberType]
 
 
 def extract_text_per_page(doc: pymupdf.Document) -> list[str]:
