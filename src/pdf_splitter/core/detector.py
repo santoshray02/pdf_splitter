@@ -51,10 +51,13 @@ async def detect_boundaries(
         prev, curr = pages[i], pages[i + 1]
         page_index = i + 1
 
+        # Compute the cache key once if caching is active; re-used for the
+        # write path on cache miss below.
+        cache_key: str | None = None
         if cache is not None:
             payload = _page_payload(mode, prev, curr)
-            key = make_cache_key(prompt=prompt, payload=payload)
-            hit = cache.get(key)
+            cache_key = make_cache_key(prompt=prompt, payload=payload)
+            hit = cache.get(cache_key)
             if hit is not None:
                 results[i] = hit
                 return
@@ -77,10 +80,8 @@ async def detect_boundaries(
         results[i] = decision
         async with cost_lock:
             cost_total += cost
-        if cache is not None and not decision.is_error:
-            payload = _page_payload(mode, prev, curr)
-            key = make_cache_key(prompt=prompt, payload=payload)
-            cache.set(key, decision)
+        if cache_key is not None and not decision.is_error:
+            cache.set(cache_key, decision)  # type: ignore[union-attr]
 
     async with anyio.create_task_group() as tg:
         for i in range(n - 1):

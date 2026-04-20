@@ -57,6 +57,8 @@ select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
 include = ["src", "tests"]
 strict = ["src/pdf_splitter/core", "src/pdf_splitter/providers"]
 pythonVersion = "3.12"
+venvPath = "."
+venv = ".venv"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
