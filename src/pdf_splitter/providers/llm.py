@@ -8,7 +8,7 @@ from typing import Any
 
 import structlog
 from litellm import (
-    acompletion as _acompletion,  # type: ignore[reportUnknownVariableType]  # patched in tests via monkeypatch
+    acompletion as _acompletion,  # pyright: ignore[reportUnknownVariableType]
 )
 from pydantic import ValidationError
 from tenacity import (
@@ -78,6 +78,10 @@ class LLMClient:
     async def _call_with_retries(self, messages: list[dict[str, Any]]) -> tuple[str, float]:
         # With reraise=True, the last exception propagates directly after final
         # attempt — no RetryError wrapper. We let it bubble up to classify().
+        # v2-TODO: narrow retry predicate from bare Exception to litellm's
+        # transient-error hierarchy (RateLimitError, APIConnectionError,
+        # Timeout, ServiceUnavailableError, InternalServerError) so that
+        # programming bugs fail fast instead of burning N retries.
         async for attempt in AsyncRetrying(
             stop=stop_after_attempt(self.max_attempts),
             wait=wait_exponential_jitter(initial=0.01, max=0.1),
@@ -133,8 +137,15 @@ class LLMClient:
                 ),
                 total_cost,
             )
-        except (ValueError, KeyError, ValidationError):
-            pass
+        except (ValueError, KeyError, ValidationError) as exc:
+            # Log the original malformed content at debug level so that when the
+            # repair path also fails we still have diagnostic breadcrumbs.
+            log.debug(
+                "classify.malformed_json_first_pass",
+                page_index=page_index,
+                error=str(exc),
+                content_preview=content[:200],
+            )
 
         # Repair retry: one more call, stricter instruction.
         repair_instruction = (
