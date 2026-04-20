@@ -6,6 +6,7 @@ import os
 from importlib import resources
 from pathlib import Path
 
+import platformdirs
 import yaml
 
 from pdf_splitter.core.models import ProfileConfig
@@ -20,9 +21,13 @@ def _local_dir() -> Path:
 
 
 def _xdg_dir() -> Path:
+    # Honor XDG_CONFIG_HOME if set (enables hermetic test isolation and
+    # lets power users override). Otherwise fall back to the
+    # platform-native user config dir: ~/.config on Linux, ~/Library/Application
+    # Support on macOS, %APPDATA% on Windows.
     root = os.environ.get("XDG_CONFIG_HOME")
-    base = Path(root) if root else Path.home() / ".config"
-    return base / "pdf_splitter" / "profiles"
+    base = Path(root) if root else Path(platformdirs.user_config_dir("pdf_splitter"))
+    return (base / "pdf_splitter" if root else base) / "profiles"
 
 
 def _builtin_dir() -> Path:

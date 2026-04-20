@@ -16,6 +16,8 @@ def test_load_profile_from_local_dir(tmp_path: Path, monkeypatch):
     local.mkdir()
     _write_profile(local / "foo.yaml", "foo", "hello")
     monkeypatch.chdir(tmp_path)
+    # Isolate from any real $HOME/.config entries the test developer has.
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "nope"))
     p = load_profile("foo")
     assert p.name == "foo"
     assert "hello" in p.prompt
