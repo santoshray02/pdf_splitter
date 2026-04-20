@@ -8,7 +8,15 @@ from pdf_splitter.core.input import InputError, _garbage_ratio, detect_mode, ope
 
 
 def test_text_pdf_detected_as_text(text_pdf_factory):
-    path = text_pdf_factory(["Hello world, this is a typical page of prose."] * 3)
+    # Each page must extract >100 chars to clear TEXT_CHAR_THRESHOLD. A single
+    # drawString line of prose (~45 chars) doesn't; combining several sentences
+    # into one drawString call yields ~175 chars as extracted by pymupdf.
+    page_text = (
+        "Hello world, this is a typical page of prose. "
+        "It contains multiple sentences to ensure sufficient character count. "
+        "This simulates a real document with meaningful text content."
+    )
+    path = text_pdf_factory([page_text] * 3)
     doc = open_pdf(path)
     assert detect_mode(doc) == "text"
 

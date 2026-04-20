@@ -9,7 +9,7 @@ import pymupdf
 
 from pdf_splitter.core.models import Mode
 
-TEXT_CHAR_THRESHOLD = 10  # min chars per page (averaged) to be considered text-bearing
+TEXT_CHAR_THRESHOLD = 100  # min chars per page (averaged) to be considered text-bearing
 GARBAGE_RATIO_THRESHOLD = 0.20  # fraction of chars that are replacement/control
 
 
